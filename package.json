@@ -1,6 +1,6 @@
 {
   "name": "autofill-extension",
-  "description": "保存个人信息，一键自动填写网页表单",
+  "description": "Save your details once, then fill any web form in one click",
   "private": true,
   "version": "0.1.0",
   "type": "module",

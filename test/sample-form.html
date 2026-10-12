@@ -1,54 +1,98 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>自动填表测试页</title>
+  <title>Autofill test page</title>
   <style>
-    body { font-family: system-ui, 'Microsoft YaHei', sans-serif; max-width: 640px; margin: 32px auto; padding: 0 16px; }
+    body { font-family: system-ui, sans-serif; max-width: 680px; margin: 32px auto; padding: 0 16px; }
     fieldset { margin-bottom: 16px; }
     label, .row { display: block; margin: 8px 0; }
     td { padding: 4px 8px; }
+    .hint { color: #666; font-size: 13px; }
   </style>
 </head>
 <body>
-  <h1>自动填表测试页</h1>
-  <p>用插件「一键填表」后，下面应该被自动填上。</p>
+  <h1>Autofill test page</h1>
+  <p>Click <b>Fill this page</b> in the extension. Fields marked "stays empty" must not be filled.</p>
 
   <fieldset>
-    <legend>中文表单（label for）</legend>
-    <label for="xm">姓名</label><input id="xm" />
-    <label for="sj">手机号</label><input id="sj" />
-    <label for="yx">电子邮箱</label><input id="yx" />
-    <label for="sf">省份</label>
-    <select id="sf"><option value="">请选择</option><option>北京</option><option>广东</option><option>浙江</option></select>
-    <label for="dz">详细地址</label><input id="dz" />
-    <label for="yb">邮编</label><input id="yb" />
+    <legend>Sign-up form (&lt;label for&gt;)</legend>
+    <label for="f-name">Full name</label><input id="f-name" />
+    <label for="f-email">Email address</label><input id="f-email" />
+    <label for="f-phone">Phone number</label><input id="f-phone" />
+    <label for="f-dob">Date of birth</label><input id="f-dob" type="date" />
+    <div class="row">Gender:
+      <label><input type="radio" name="gender" value="female" />Female</label>
+      <label><input type="radio" name="gender" value="male" />Male</label>
+    </div>
+    <label for="f-street">Street address</label><input id="f-street" />
+    <label for="f-line2">Address line 2 <span class="hint">(stays empty)</span></label><input id="f-line2" />
+    <label for="f-city">City</label><input id="f-city" />
+    <label for="f-state">State</label>
+    <select id="f-state">
+      <option value="">Select…</option>
+      <option value="NY">New York</option>
+      <option value="CA">California</option>
+      <option value="TX">Texas</option>
+    </select>
+    <label for="f-zip">ZIP code</label><input id="f-zip" />
+    <label for="f-country">Country</label>
+    <select id="f-country">
+      <option value="">Select…</option>
+      <option value="CA">Canada</option>
+      <option value="US">United States</option>
+      <option value="GB">United Kingdom</option>
+    </select>
+  </fieldset>
+
+  <fieldset>
+    <legend>No labels (name / placeholder / autocomplete)</legend>
+    <input name="first_name" placeholder="First name" />
+    <input name="middle_name" placeholder="Middle name (stays empty)" />
+    <input name="last_name" placeholder="Last name" />
+    <input type="email" name="contact" placeholder="Email" />
+    <input autocomplete="shipping postal-code" placeholder="Postal code" />
+    <input name="company" placeholder="Company" />
+    <input name="position" placeholder="Job title" />
+    <input name="username" placeholder="Username (stays empty)" />
+    <input type="password" name="password" placeholder="Password (stays empty)" />
+    <input type="search" name="q" placeholder="Search by name (stays empty)" />
+    <input name="email2" style="display:none" />
+  </fieldset>
+
+  <fieldset>
+    <legend>Table layout</legend>
+    <table>
+      <tr><td>Mobile</td><td><input id="t-mobile" /></td></tr>
+      <tr><td>Town / City</td><td><input id="t-city" /></td></tr>
+      <tr><td>Company name</td><td><input id="t-company" /></td></tr>
+      <tr><td>Phone (already filled, kept)</td><td><input id="t-prefilled" value="000-0000" /></td></tr>
+    </table>
+  </fieldset>
+
+  <fieldset>
+    <legend>Framework-style listener</legend>
+    <label for="r-name">Name</label><input id="r-name" />
+    <p class="hint">Input event received: <span id="r-echo">no</span></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Chinese form (中文表单)</legend>
+    <label for="c-name">姓名</label><input id="c-name" />
+    <label for="c-phone">手机号</label><input id="c-phone" />
+    <label for="c-zip">邮编</label><input id="c-zip" />
     <div class="row">性别：
       <label><input type="radio" name="xb" value="男" />男</label>
       <label><input type="radio" name="xb" value="女" />女</label>
     </div>
   </fieldset>
 
-  <fieldset>
-    <legend>英文表单（name / autocomplete）</legend>
-    <input name="first_name" placeholder="First name" />
-    <input name="last_name" placeholder="Last name" />
-    <input type="email" name="contact" placeholder="Email" />
-    <input autocomplete="shipping postal-code" placeholder="ZIP" />
-    <input name="company" placeholder="Company" />
-    <input name="username" placeholder="Username（不应被填）" />
-    <input type="password" name="password" placeholder="Password（不应被填）" />
-  </fieldset>
+  <button type="submit">Submit (the extension never clicks this)</button>
 
-  <fieldset>
-    <legend>表格布局（无 label）</legend>
-    <table>
-      <tr><td>联系电话</td><td><input /></td></tr>
-      <tr><td>所在城市</td><td><input /></td></tr>
-      <tr><td>公司名称</td><td><input /></td></tr>
-    </table>
-  </fieldset>
-
-  <button type="submit">提交（插件不会自动点）</button>
+  <script>
+    document.getElementById('r-name').addEventListener('input', (e) => {
+      document.getElementById('r-echo').textContent = 'yes: ' + e.target.value;
+    });
+  </script>
 </body>
 </html>

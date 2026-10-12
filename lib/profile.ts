@@ -23,29 +23,29 @@ export type Profile = Record<ProfileKey, string>;
 export interface FieldMeta {
   key: ProfileKey;
   label: string;
-  group: '基本信息' | '联系方式' | '工作' | '地址';
+  group: 'Personal' | 'Contact' | 'Work' | 'Address';
   type?: 'text' | 'email' | 'tel' | 'date' | 'url';
   placeholder?: string;
 }
 
 /** Field order here drives the options page layout. */
 export const FIELDS: FieldMeta[] = [
-  { key: 'fullName', label: '姓名', group: '基本信息', placeholder: '张三' },
-  { key: 'lastName', label: '姓', group: '基本信息', placeholder: '张' },
-  { key: 'firstName', label: '名', group: '基本信息', placeholder: '三' },
-  { key: 'gender', label: '性别', group: '基本信息', placeholder: '男 / 女' },
-  { key: 'birthday', label: '出生日期', group: '基本信息', type: 'date' },
-  { key: 'email', label: '邮箱', group: '联系方式', type: 'email', placeholder: 'name@example.com' },
-  { key: 'phone', label: '手机号', group: '联系方式', type: 'tel', placeholder: '13800000000' },
-  { key: 'website', label: '个人网站', group: '联系方式', type: 'url' },
-  { key: 'company', label: '公司', group: '工作' },
-  { key: 'jobTitle', label: '职位', group: '工作' },
-  { key: 'country', label: '国家/地区', group: '地址', placeholder: '中国' },
-  { key: 'province', label: '省份', group: '地址', placeholder: '广东省' },
-  { key: 'city', label: '城市', group: '地址', placeholder: '深圳市' },
-  { key: 'district', label: '区/县', group: '地址', placeholder: '南山区' },
-  { key: 'street', label: '详细地址', group: '地址', placeholder: '街道、门牌号' },
-  { key: 'postalCode', label: '邮编', group: '地址', placeholder: '518000' },
+  { key: 'fullName', label: 'Full name', group: 'Personal', placeholder: 'Jane Doe' },
+  { key: 'firstName', label: 'First name', group: 'Personal', placeholder: 'Jane' },
+  { key: 'lastName', label: 'Last name', group: 'Personal', placeholder: 'Doe' },
+  { key: 'gender', label: 'Gender', group: 'Personal', placeholder: 'Female / Male' },
+  { key: 'birthday', label: 'Date of birth', group: 'Personal', type: 'date' },
+  { key: 'email', label: 'Email', group: 'Contact', type: 'email', placeholder: 'jane@example.com' },
+  { key: 'phone', label: 'Phone', group: 'Contact', type: 'tel', placeholder: '+1 555 123 4567' },
+  { key: 'website', label: 'Website', group: 'Contact', type: 'url', placeholder: 'https://' },
+  { key: 'company', label: 'Company', group: 'Work' },
+  { key: 'jobTitle', label: 'Job title', group: 'Work' },
+  { key: 'street', label: 'Street address', group: 'Address', placeholder: '123 Main St, Apt 4' },
+  { key: 'city', label: 'City', group: 'Address', placeholder: 'San Francisco' },
+  { key: 'district', label: 'District / County', group: 'Address' },
+  { key: 'province', label: 'State / Province', group: 'Address', placeholder: 'California' },
+  { key: 'postalCode', label: 'ZIP / Postal code', group: 'Address', placeholder: '94105' },
+  { key: 'country', label: 'Country', group: 'Address', placeholder: 'United States' },
 ];
 
 export const EMPTY_PROFILE: Profile = Object.fromEntries(
@@ -64,7 +64,7 @@ export function saveProfile(profile: Profile): Promise<void> {
   return profileItem.setValue(profile);
 }
 
-/** Fill in derived values, e.g. split 姓名 into 姓/名 when only one side is set. */
+/** Fill in derived values, e.g. split a full name into first/last when only one side is set. */
 export function withDerived(p: Profile): Profile {
   const out = { ...p };
   if (!out.fullName && (out.lastName || out.firstName)) {

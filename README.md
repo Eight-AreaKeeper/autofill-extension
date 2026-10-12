@@ -1,42 +1,66 @@
-# 自动填表助手
+# Autofill Assistant
 
-浏览器插件：先保存一份个人信息，之后在任意网页点一下就能自动填表。数据只存在本机。
+A Chrome extension that fills web forms for you. Save your details once, then click **Fill this page** on any sign-up, checkout or application form. Your data never leaves your device.
 
-需求与技术选型见 [docs/requirements.md](docs/requirements.md)。
+- Recognizes fields by `autocomplete`, labels, `name`/`id`, placeholders and nearby text (English and Chinese)
+- Fills text inputs, dates, dropdowns and radio buttons, including aliases like `CA` ↔ `California`
+- Works with React, Vue and other framework-controlled forms
+- Never overwrites what you've typed, never touches password or hidden fields, never submits
+- Only runs when you click, using the `activeTab` permission, so it can't read pages in the background
 
-## 开发
+Requirements and design decisions are in [docs/requirements.md](docs/requirements.md).
+
+## Install from source
+
+You need [Node.js](https://nodejs.org) 20 or newer.
 
 ```bash
+git clone https://github.com/Eight-AreaKeeper/autofill-extension.git
+cd autofill-extension
 npm install
-npm run dev      # 启动开发模式，会自动打开一个装好插件的 Chrome，改代码热更新
-npm run build    # 生产构建，输出到 .output/chrome-mv3
-npm test         # 字段匹配单元测试
-npm run compile  # TypeScript 类型检查
-npm run zip      # 打包成 zip，用于上架应用商店
+npm run build
 ```
 
-## 在 Chrome / Edge 里加载测试
+Then load it into Chrome (Edge and other Chromium browsers work the same way):
 
-1. `npm run build`
-2. 打开 `chrome://extensions`（Edge 为 `edge://extensions`），打开右上角「开发者模式」
-3. 点「加载已解压的扩展程序」，选择 `.output/chrome-mv3` 目录
-4. 点工具栏的拼图图标，把「自动填表助手」固定到工具栏
-5. 点插件图标 →「去填写个人信息」，填好后保存
-6. 用浏览器打开测试页：在项目目录运行 `npx serve test`，访问它给出的地址并打开 `sample-form.html`（或任意有表单的网站）
-7. 点插件图标 →「一键填表」
+1. Open `chrome://extensions` (or `edge://extensions`).
+2. Turn on **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `.output/chrome-mv3` folder.
+4. Pin **Autofill Assistant** from the puzzle-piece menu so its icon stays in the toolbar.
 
-改代码后重新 `npm run build`，再在扩展管理页点插件卡片上的刷新按钮。
+## Use it
 
-> 直接双击打开 `file://` 测试页时，需要在插件「详细信息」里打开「允许访问文件网址」才能填表。
+1. Click the extension icon, then **Add my details**. Fill in what you want and press **Save**.
+2. Open a page with a form.
+3. Click the extension icon, then **Fill this page**. Filled fields flash blue.
+4. Check the form and submit it yourself.
 
-## 目录
+To try it on the bundled test page, run `npx serve test` in the project folder, open the address it prints and go to `sample-form.html`. If you open the file directly as `file://…`, first enable **Allow access to file URLs** on the extension's details page.
+
+## Development
+
+```bash
+npm run dev      # Dev build with hot reload into .output/chrome-mv3-dev (load that folder unpacked)
+npm run build    # Production build into .output/chrome-mv3
+npm test         # Unit tests
+npm run compile  # Type check
+npm run zip      # Zip for the Chrome Web Store
+```
+
+After `npm run build`, click the reload icon on the extension's card in `chrome://extensions` to pick up changes.
+
+## Project layout
 
 ```
-entrypoints/options/        个人信息编辑页
-entrypoints/popup/          工具栏弹窗（一键填表）
-entrypoints/autofill.content.ts  点击时注入当前页的填表脚本
-lib/profile.ts              资料字段定义与存储
-lib/matcher.ts              表单字段识别规则
-lib/filler.ts               填写、事件派发、高亮
-test/                       测试页与单元测试
+entrypoints/options/             My details page
+entrypoints/popup/               Toolbar popup (Fill this page)
+entrypoints/autofill.content.ts  Fill script, injected into the current tab on click
+lib/profile.ts                   Profile fields and storage
+lib/matcher.ts                   Field recognition rules
+lib/filler.ts                    Filling, events and highlighting
+test/                            Test page and unit tests
 ```
+
+## Privacy
+
+Everything you enter is kept in your browser's local extension storage. The extension makes no network requests and collects no analytics.

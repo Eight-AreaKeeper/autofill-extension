@@ -19,20 +19,20 @@ export default function App() {
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     await saveProfile(profile);
-    setStatus('已保存');
+    setStatus('Saved');
   };
 
   const onClear = async () => {
-    if (!confirm('确定清空所有个人信息吗？')) return;
+    if (!confirm('Clear all your saved details?')) return;
     setProfile(EMPTY_PROFILE);
     await saveProfile(EMPTY_PROFILE);
-    setStatus('已清空');
+    setStatus('Cleared');
   };
 
   return (
     <form className="options" onSubmit={onSave}>
-      <h1>个人信息</h1>
-      <p className="muted">这些信息只保存在本机浏览器中，用于一键填表。留空的项不会填写。</p>
+      <h1>My details</h1>
+      <p className="muted">Stored only in this browser and used for one-click form filling. Empty fields are never filled.</p>
 
       {GROUPS.map((group) => (
         <fieldset key={group}>
@@ -54,8 +54,8 @@ export default function App() {
       ))}
 
       <div className="actions">
-        <button type="submit" className="primary">保存</button>
-        <button type="button" onClick={onClear}>清空</button>
+        <button type="submit" className="primary">Save</button>
+        <button type="button" onClick={onClear}>Clear all</button>
         <span className="ok">{status}</span>
       </div>
     </form>

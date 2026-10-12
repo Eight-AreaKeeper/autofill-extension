@@ -5,60 +5,103 @@ import { fillPage } from '@/lib/filler';
 import { matchField } from '@/lib/matcher';
 import { EMPTY_PROFILE, type Profile } from '@/lib/profile';
 
-const profile: Profile = {
+export const TEST_PROFILE: Profile = {
   ...EMPTY_PROFILE,
-  fullName: '张三',
-  email: 'zhangsan@example.com',
-  phone: '13800000000',
-  gender: '男',
-  company: '示例科技',
-  province: '广东省',
-  city: '深圳市',
-  street: '科技园路 1 号',
-  postalCode: '518000',
+  fullName: 'Jane Doe',
+  email: 'jane@example.com',
+  phone: '+1 555 123 4567',
+  gender: 'Female',
+  birthday: '1990-05-17',
+  company: 'Acme Inc.',
+  jobTitle: 'Engineer',
+  street: '123 Main St',
+  city: 'San Francisco',
+  province: 'CA',
+  postalCode: '94105',
+  country: 'United States',
 };
 
-const $ = (sel: string) => document.querySelector<HTMLInputElement>(sel)!;
+const $ = <T extends Element = HTMLInputElement>(sel: string) => document.querySelector<T>(sel)! as T;
 
 beforeEach(() => {
   const html = readFileSync(resolve(__dirname, 'sample-form.html'), 'utf8');
   document.body.innerHTML = new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
-  // happy-dom has no layout, so pretend everything is visible.
-  HTMLElement.prototype.getClientRects = () => [{}] as unknown as DOMRectList;
+  // Scripts don't run through innerHTML, so wire up the page's input listener here.
+  document.getElementById('r-name')!.addEventListener('input', (e) => {
+    document.getElementById('r-echo')!.textContent = 'yes: ' + (e.target as HTMLInputElement).value;
+  });
+  // happy-dom has no layout: treat everything as visible except display:none.
+  HTMLElement.prototype.getClientRects = function (this: HTMLElement) {
+    return (this.style.display === 'none' ? [] : [{}]) as unknown as DOMRectList;
+  };
 });
 
 describe('matchField', () => {
   it('prefers autocomplete, then labels and attributes', () => {
     expect(matchField($('[autocomplete="shipping postal-code"]'))).toBe('postalCode');
-    expect(matchField($('#xm'))).toBe('fullName');
+    expect(matchField($('#f-name'))).toBe('fullName');
     expect(matchField($('[name=first_name]'))).toBe('firstName');
+    expect(matchField($('#f-line2'))).toBeNull();
+    expect(matchField($('[name=middle_name]'))).toBeNull();
     expect(matchField($('[name=username]'))).toBeNull();
+    expect(matchField($('#c-name'))).toBe('fullName');
   });
 });
 
 describe('fillPage', () => {
   it('fills the sample form', () => {
-    const res = fillPage(profile);
-    expect($('#xm').value).toBe('张三');
-    expect($('#sj').value).toBe('13800000000');
-    expect($('#yx').value).toBe('zhangsan@example.com');
-    expect(document.querySelector<HTMLSelectElement>('#sf')!.value).toBe('广东');
-    expect($('#yb').value).toBe('518000');
-    expect($('input[name=xb][value=男]').checked).toBe(true);
-    // Derived from 张三.
-    expect($('[name=first_name]').value).toBe('三');
-    expect($('[name=last_name]').value).toBe('张');
-    expect($('[name=contact]').value).toBe('zhangsan@example.com');
-    const tableInputs = document.querySelectorAll<HTMLInputElement>('table input');
-    expect([...tableInputs].map((i) => i.value)).toEqual(['13800000000', '深圳市', '示例科技']);
-    expect($('[name=username]').value).toBe('');
-    expect($('[name=password]').value).toBe('');
-    expect(res.filled).toBeGreaterThanOrEqual(14);
+    const res = fillPage(TEST_PROFILE);
+    const value = (sel: string) => $(sel).value;
+
+    expect(value('#f-name')).toBe('Jane Doe');
+    expect(value('#f-email')).toBe('jane@example.com');
+    expect(value('#f-phone')).toBe('+1 555 123 4567');
+    expect(value('#f-dob')).toBe('1990-05-17');
+    expect($('input[name=gender][value=female]').checked).toBe(true);
+    expect(value('#f-street')).toBe('123 Main St');
+    expect(value('#f-city')).toBe('San Francisco');
+    expect(value('#f-state')).toBe('CA');
+    expect(value('#f-zip')).toBe('94105');
+    expect(value('#f-country')).toBe('US');
+
+    // First/last are derived from the full name.
+    expect(value('[name=first_name]')).toBe('Jane');
+    expect(value('[name=last_name]')).toBe('Doe');
+    expect(value('[name=contact]')).toBe('jane@example.com');
+    expect(value('[autocomplete="shipping postal-code"]')).toBe('94105');
+    expect(value('[name=company]')).toBe('Acme Inc.');
+    expect(value('[name=position]')).toBe('Engineer');
+
+    expect(value('#t-mobile')).toBe('+1 555 123 4567');
+    expect(value('#t-city')).toBe('San Francisco');
+    expect(value('#t-company')).toBe('Acme Inc.');
+    expect($('#r-echo').textContent).toBe('yes: Jane Doe');
+
+    expect(value('#c-name')).toBe('Jane Doe');
+    expect(value('#c-phone')).toBe('+1 555 123 4567');
+    expect(value('#c-zip')).toBe('94105');
+    expect($('input[name=xb][value=女]').checked).toBe(true);
+
+    for (const sel of ['#f-line2', '[name=middle_name]', '[name=username]', '[name=password]', '[name=q]', '[name=email2]']) {
+      expect(value(sel), sel).toBe('');
+    }
+    expect(value('#t-prefilled')).toBe('000-0000');
+    expect(res.filled).toBe(24);
   });
 
-  it('does not overwrite existing values', () => {
-    $('#xm').value = '李四';
-    fillPage(profile);
-    expect($('#xm').value).toBe('李四');
+  it('fills nothing new on a second run', () => {
+    fillPage(TEST_PROFILE);
+    expect(fillPage(TEST_PROFILE).filled).toBe(0);
+  });
+
+  it('matches Chinese option text and state abbreviations', () => {
+    document.body.innerHTML = `
+      <label for="p">省份</label><select id="p"><option value="">请选择</option><option>广东</option></select>
+      <label for="s">State</label><select id="s"><option value="">-</option><option>CA</option><option>NY</option></select>`;
+    fillPage({ ...EMPTY_PROFILE, province: '广东省' });
+    expect($<HTMLSelectElement>('#p').value).toBe('广东');
+    document.querySelector<HTMLSelectElement>('#s')!.selectedIndex = 0;
+    fillPage({ ...EMPTY_PROFILE, province: 'California' });
+    expect($<HTMLSelectElement>('#s').value).toBe('CA');
   });
 });

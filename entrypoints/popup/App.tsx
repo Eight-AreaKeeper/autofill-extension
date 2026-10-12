@@ -22,7 +22,7 @@ export default function App() {
     setState({ kind: 'running' });
     try {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id) throw new Error('找不到当前标签页');
+      if (!tab?.id) throw new Error('No active tab');
       const [res] = await browser.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['/content-scripts/autofill.js'],
@@ -31,33 +31,33 @@ export default function App() {
       setState({ kind: 'done', filled: result?.filled ?? 0 });
     } catch (err) {
       // chrome://, the Web Store and other extension pages refuse script injection.
-      setState({ kind: 'error', message: '此页面不允许填表（如浏览器内置页、应用商店）' });
+      setState({ kind: 'error', message: "Forms can't be filled on this page (browser settings pages and the Web Store are off-limits)." });
       console.error(err);
     }
   };
 
   return (
     <div className="popup">
-      <h1>自动填表助手</h1>
+      <h1>Autofill Assistant</h1>
 
       {hasProfile === false ? (
         <>
-          <p className="muted">还没有填写个人信息。</p>
-          <button className="primary" onClick={openOptions}>去填写个人信息</button>
+          <p className="muted">You haven't saved any details yet.</p>
+          <button className="primary" onClick={openOptions}>Add my details</button>
         </>
       ) : (
         <>
           <button className="primary" onClick={fill} disabled={state.kind === 'running' || !hasProfile}>
-            {state.kind === 'running' ? '填写中…' : '一键填表'}
+            {state.kind === 'running' ? 'Filling…' : 'Fill this page'}
           </button>
           {state.kind === 'done' &&
             (state.filled > 0 ? (
-              <span className="ok">已填写 {state.filled} 个字段，请检查后再提交。</span>
+              <span className="ok">Filled {state.filled} {state.filled === 1 ? 'field' : 'fields'}. Review them before you submit.</span>
             ) : (
-              <span className="muted">没有找到可以填写的空字段。</span>
+              <span className="muted">Didn't find any empty fields it could fill.</span>
             ))}
           {state.kind === 'error' && <span className="err">{state.message}</span>}
-          <button className="link" onClick={openOptions}>编辑个人信息</button>
+          <button className="link" onClick={openOptions}>Edit my details</button>
         </>
       )}
     </div>

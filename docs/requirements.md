@@ -1,87 +1,89 @@
-# 自动填表浏览器插件：需求分析与技术栈
+# Requirements and Technical Decisions
 
-## 1. 产品定位
+## 1. What it is
 
-一个浏览器插件。用户先在插件里填写一份个人信息（姓名、电话、邮箱、地址等），之后浏览任意网页时，点一下插件按钮，插件就识别当前页面的表单字段并自动填入对应信息。
+A browser extension. You enter your personal details (name, phone, email, address and so on) once in the extension. Afterwards, on any web page with a form, you click the extension button and it recognizes the form fields and fills them in for you.
 
-目标用户：经常需要在注册、报名、下单、求职、问卷等页面重复填写个人信息的普通用户。
+Target users are English-speaking people who repeatedly type the same details into sign-up, checkout, job application, event registration and survey forms. Field recognition also understands Chinese labels, so bilingual sites work too.
 
-## 2. 核心使用流程
+## 2. Core flow
 
-1. 安装插件后，打开「个人信息」设置页（options 页），填写并保存资料。
-2. 打开一个带表单的网页。
-3. 点击工具栏插件图标，弹出 popup，点「一键填表」。
-4. 插件在当前页面识别字段并填入，popup 显示「已填写 N 个字段」。
-5. 用户检查无误后自行提交表单。插件**从不**自动提交。
+1. After installing, open the **My details** page (the options page), fill it in and save.
+2. Open a web page that has a form.
+3. Click the extension icon in the toolbar and press **Fill this page**.
+4. The extension fills the fields it recognizes, briefly highlights them, and the popup shows how many were filled.
+5. You review the result and submit the form yourself. The extension **never** submits forms.
 
-## 3. 功能需求
+## 3. Functional requirements
 
-### MVP（本次骨架实现）
+### MVP (implemented)
 
-| 编号 | 需求 | 说明 |
+| ID | Requirement | Notes |
 |---|---|---|
-| F1 | 个人信息编辑 | options 页表单，可编辑、保存、清空；存在本地 |
-| F2 | 一键填表 | popup 按钮触发，对当前标签页填充 |
-| F3 | 字段识别 | 基于 `autocomplete` / `name` / `id` / `label` / `placeholder` / `aria-label` 的规则映射，中英文关键词 |
-| F4 | 兼容框架 | 用原生 setter 赋值并派发 `input`/`change` 事件，让 React/Vue 表单感知到变化 |
-| F5 | 不覆盖已有内容 | 已有值的输入框默认跳过 |
-| F6 | 填写反馈 | 被填的字段短暂高亮，popup 显示填写数量 |
-| F7 | 下拉框支持 | `<select>` 按选项文本/值模糊匹配（如性别、省份） |
+| F1 | Edit personal details | Options page with save and clear; stored locally |
+| F2 | One-click fill | Popup button fills the current tab |
+| F3 | Field recognition | Rule-based mapping from `autocomplete`, `name`, `id`, `<label>`, `placeholder`, `aria-label` and nearby text, with English and Chinese keywords |
+| F4 | Framework compatibility | Values are set through the native setter and `input`/`change` events are dispatched so React/Vue/Angular forms notice them |
+| F5 | Never overwrite | Fields that already have a value are skipped |
+| F6 | Feedback | Filled fields are briefly outlined; the popup reports the count |
+| F7 | Dropdowns and radios | `<select>` options and radio groups are matched by text or value, with aliases (e.g. `CA` ↔ `California`, `US` ↔ `United States`, `Female` ↔ `F`) |
+| F8 | Name splitting | A full name fills separate first/last name fields, and vice versa |
 
-### 后续迭代（不在本次范围）
+### Later (out of scope for now)
 
-- 多套资料（个人 / 工作），按站点自动选择
-- 站点级自定义映射：用户在页面上右键某字段 → 指定对应资料项，记住该站点规则
-- 自定义字段（任意 键 → 值）
-- 快捷键填表、右键菜单填表
-- iframe 内表单、Shadow DOM 内表单
-- 资料导入/导出（JSON），可选加密备份
-- 多语言界面；Firefox / Edge 适配（WXT 可直接出多浏览器包）
-- 可选：LLM 辅助识别规则无法匹配的字段（需用户明确开启，且只发送字段描述，不发送资料值）
+- Multiple profiles (personal / work), chosen per site
+- Per-site custom mappings: right-click a field and assign it to a profile item, remembered for that site
+- Custom fields (any key → value)
+- Keyboard shortcut and context-menu fill
+- Forms inside iframes and Shadow DOM
+- Import/export (JSON), optional encrypted backup
+- Localized UI; Firefox and Edge store builds (WXT can produce them from the same code)
+- Optional AI-assisted matching for fields the rules miss (opt-in, sends only field descriptions, never your values)
 
-## 4. 非功能需求
+## 4. Non-functional requirements
 
-- **隐私**：所有资料只存在本机 `chrome.storage.local`，不联网、不上传、无统计。
-- **敏感信息**：MVP 不收集身份证号、银行卡号、密码等；后续若加入，需单独开关并考虑本地加密。
-- **安全**：不填 `type=password`、`type=hidden`、`disabled`、`readonly` 字段；从不自动提交。
-- **权限最小化**：使用 `activeTab` + `scripting`，仅在用户点击时向当前页注入脚本，无需申请「读取所有网站」权限，安装时不会弹出吓人的权限提示。
-- **性能**：只在点击时运行，平时对页面零开销。
+- **Privacy**: all data stays in `chrome.storage.local` on your device. No network requests, no uploads, no analytics.
+- **Sensitive data**: the MVP does not store government ID numbers, card numbers or passwords. If added later they need a separate toggle and local encryption.
+- **Safety**: never fills `password`, `hidden`, `disabled`, `readonly` or invisible (often honeypot) fields, and never submits forms.
+- **Minimal permissions**: uses `activeTab` + `scripting`, so a script is injected into the current page only when you click. The extension does not request "read and change all your data on all websites", so installation shows no scary warning.
+- **Performance**: nothing runs until you click, so there is zero overhead on pages you browse.
 
-## 5. 技术栈决定
+## 5. Technology choices
 
-| 方面 | 选择 | 理由 |
+| Area | Choice | Why |
 |---|---|---|
-| 平台 | Chrome Manifest V3 | Chrome 已淘汰 MV2；Edge 同内核可直接用 |
-| 语言 | TypeScript | 资料结构与匹配规则类型安全 |
-| 构建框架 | [WXT](https://wxt.dev) (基于 Vite) | 约定式入口、自动生成 manifest、HMR、一套代码可出 Chrome/Firefox/Edge 包；比 CRXJS 维护更活跃 |
-| UI | React 18 | popup 与 options 页；生态成熟 |
-| 存储 | `chrome.storage.local`（经 `wxt/storage` 封装） | 本地、容量足够、扩展各部分共享 |
-| 页面注入 | `browser.scripting.executeScript` + `activeTab` | 按需注入，权限最小 |
-| 测试 | Vitest + happy-dom | 对字段匹配规则做单元测试 |
+| Platform | Chrome Manifest V3 | MV2 is retired; Edge and other Chromium browsers run the same build |
+| Language | TypeScript | Type safety for the profile schema and matching rules |
+| Build framework | [WXT](https://wxt.dev) (on Vite) | File-based entrypoints, generated manifest, hot reload, one codebase for Chrome/Firefox/Edge; more actively maintained than CRXJS |
+| UI | React 18 | Popup and options page; mature ecosystem |
+| Storage | `chrome.storage.local` via `wxt/utils/storage` | Local, roomy enough, shared across all extension contexts |
+| Page injection | `browser.scripting.executeScript` + `activeTab` | Injected on demand with minimal permissions |
+| Tests | Vitest + happy-dom | Unit tests for matching and filling |
 
-## 6. 架构
+## 6. Architecture
 
 ```
 entrypoints/
-  options/        个人信息编辑页（React）
-  popup/          工具栏弹窗：一键填表按钮（React）
-  autofill.content.ts  按需注入的填表脚本（不自动注入）
+  options/               My details page (React)
+  popup/                 Toolbar popup with the Fill button (React)
+  autofill.content.ts    Fill script, injected on click (not auto-injected)
 lib/
-  profile.ts      资料类型定义、字段元数据、存储读写
-  matcher.ts      字段识别：元素 → 资料项 key
-  filler.ts       遍历页面表单、赋值、派发事件、高亮
+  profile.ts             Profile type, field metadata, storage helpers
+  matcher.ts             Field recognition: element → profile key
+  filler.ts              Walks the page's form controls, sets values, dispatches events, highlights
 test/
-  sample-form.html  本地测试用表单页
+  sample-form.html       Local test page
+  filler.test.ts         Unit tests
 ```
 
-填表流程：popup 读取资料 → `scripting.executeScript` 注入 `autofill.content.js` 到当前标签页 → 再执行一个函数调用 `window.__autofill(profile)` → 返回填写数量 → popup 显示结果。
+Fill flow: the popup calls `scripting.executeScript` to inject `content-scripts/autofill.js` into the active tab. The script reads the profile from storage, fills the page, and returns `{ filled, fields }`, which becomes the `executeScript` result the popup displays.
 
-## 7. 字段匹配策略
+## 7. Field matching strategy
 
-按优先级：
+In priority order:
 
-1. **`autocomplete` 属性**：标准值（`name`、`given-name`、`email`、`tel`、`postal-code`、`address-level1` 等）直接映射，最可靠。
-2. **关键词规则**：把 `name`、`id`、`placeholder`、`aria-label`、关联 `<label>` 文本、`title` 拼成一个签名串，依次用每个资料项的正则（中英文关键词）匹配，命中第一条即可。规则顺序从具体到泛化（如「邮编」先于「地址」，「姓」「名」先于「姓名」）。
-3. **`input type`**：`type=email` / `type=tel` 作为兜底。
+1. **`autocomplete` attribute**: standard tokens (`name`, `given-name`, `email`, `tel`, `postal-code`, `address-level1`, …) map directly. This is the most reliable signal. Section prefixes such as `shipping` are ignored.
+2. **Keyword rules**: each control's descriptors (label text, `name`, `id`, `placeholder`, `aria-label`, `title`, or a nearby caption for table layouts and radio groups) are tested against each profile item's regex in order. Specific rules come before generic ones (ZIP before address, first/last name before name). Exclusions keep out look-alikes such as username, middle name, address line 2 and phone extension.
+3. **Input type**: `type=email`, `type=tel` and `type=url` as a fallback.
 
-无法识别的字段保持原样不动。
+Fields that match nothing are left untouched.

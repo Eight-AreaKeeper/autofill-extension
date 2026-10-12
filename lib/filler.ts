@@ -26,13 +26,18 @@ function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: strin
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+/** Long enough to substring-match option text without false hits (e.g. "us" inside "Russia"). */
+function isDistinctive(v: string): boolean {
+  return v.length > 3 || (v.length > 1 && /[一-龥]/.test(v));
+}
+
 function fillSelect(el: HTMLSelectElement, key: ProfileKey, value: string): boolean {
   const variants = valueVariants(key, value);
   const options = [...el.options].filter((o) => !o.disabled);
   const norm = (s: string) => s.trim().toLowerCase();
   const option =
     options.find((o) => variants.includes(norm(o.text)) || variants.includes(norm(o.value))) ??
-    options.find((o) => o.value && variants.some((v) => v.length > 1 && norm(o.text).includes(v)));
+    options.find((o) => o.value && variants.some((v) => isDistinctive(v) && norm(o.text).includes(v)));
   if (!option) return false;
   el.value = option.value;
   el.dispatchEvent(new Event('input', { bubbles: true }));
