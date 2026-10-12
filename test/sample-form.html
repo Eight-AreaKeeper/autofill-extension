@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>自动填表测试页</title>
+  <style>
+    body { font-family: system-ui, 'Microsoft YaHei', sans-serif; max-width: 640px; margin: 32px auto; padding: 0 16px; }
+    fieldset { margin-bottom: 16px; }
+    label, .row { display: block; margin: 8px 0; }
+    td { padding: 4px 8px; }
+  </style>
+</head>
+<body>
+  <h1>自动填表测试页</h1>
+  <p>用插件「一键填表」后，下面应该被自动填上。</p>
+
+  <fieldset>
+    <legend>中文表单（label for）</legend>
+    <label for="xm">姓名</label><input id="xm" />
+    <label for="sj">手机号</label><input id="sj" />
+    <label for="yx">电子邮箱</label><input id="yx" />
+    <label for="sf">省份</label>
+    <select id="sf"><option value="">请选择</option><option>北京</option><option>广东</option><option>浙江</option></select>
+    <label for="dz">详细地址</label><input id="dz" />
+    <label for="yb">邮编</label><input id="yb" />
+    <div class="row">性别：
+      <label><input type="radio" name="xb" value="男" />男</label>
+      <label><input type="radio" name="xb" value="女" />女</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>英文表单（name / autocomplete）</legend>
+    <input name="first_name" placeholder="First name" />
+    <input name="last_name" placeholder="Last name" />
+    <input type="email" name="contact" placeholder="Email" />
+    <input autocomplete="shipping postal-code" placeholder="ZIP" />
+    <input name="company" placeholder="Company" />
+    <input name="username" placeholder="Username（不应被填）" />
+    <input type="password" name="password" placeholder="Password（不应被填）" />
+  </fieldset>
+
+  <fieldset>
+    <legend>表格布局（无 label）</legend>
+    <table>
+      <tr><td>联系电话</td><td><input /></td></tr>
+      <tr><td>所在城市</td><td><input /></td></tr>
+      <tr><td>公司名称</td><td><input /></td></tr>
+    </table>
+  </fieldset>
+
+  <button type="submit">提交（插件不会自动点）</button>
+</body>
+</html>
