@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react';
 import { EMPTY_PROFILE, FIELDS, getProfile, saveProfile, type FieldMeta, type Profile } from '@/lib/profile';
+import LearnedAnswers from './LearnedAnswers';
+import Resume from './Resume';
 
 const GROUPS = [...new Set(FIELDS.map((f) => f.group))];
 
 export default function App() {
+  return (
+    <main className="options">
+      <ProfileForm />
+      <Resume />
+      <LearnedAnswers />
+    </main>
+  );
+}
+
+function ProfileForm() {
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [status, setStatus] = useState('');
 
@@ -30,7 +42,7 @@ export default function App() {
   };
 
   return (
-    <form className="options" onSubmit={onSave}>
+    <form onSubmit={onSave}>
       <h1>My details</h1>
       <p className="muted">Stored only in this browser and used for one-click form filling. Empty fields are never filled.</p>
 

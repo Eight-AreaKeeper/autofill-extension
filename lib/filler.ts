@@ -1,9 +1,20 @@
 import { matchField, valueVariants, findLabelText, type FormControl } from './matcher';
 import { withDerived, type Profile, type ProfileKey } from './profile';
+import { findAnswer, normalizeQuestion, questionText, type LearnedAnswer } from './learning';
+import { attachResume, type StoredResume } from './resume';
 
 export interface FillResult {
   filled: number;
   fields: ProfileKey[];
+  /** How many of `filled` came from answers learned on earlier forms. */
+  fromLearned: number;
+  /** How many file inputs got the resume. */
+  resumes: number;
+}
+
+export interface FillExtras {
+  answers?: LearnedAnswer[];
+  resume?: StoredResume | null;
 }
 
 const SKIP_INPUT_TYPES = new Set([
@@ -31,8 +42,7 @@ function isDistinctive(v: string): boolean {
   return v.length > 3 || (v.length > 1 && /[一-龥]/.test(v));
 }
 
-function fillSelect(el: HTMLSelectElement, key: ProfileKey, value: string): boolean {
-  const variants = valueVariants(key, value);
+function fillSelect(el: HTMLSelectElement, variants: string[]): boolean {
   const options = [...el.options].filter((o) => !o.disabled);
   const norm = (s: string) => s.trim().toLowerCase();
   const option =
@@ -45,12 +55,11 @@ function fillSelect(el: HTMLSelectElement, key: ProfileKey, value: string): bool
   return true;
 }
 
-function fillRadio(el: HTMLInputElement, key: ProfileKey, value: string): boolean {
+function fillRadio(el: HTMLInputElement, variants: string[]): boolean {
   const group = el.name
     ? [...el.ownerDocument.querySelectorAll<HTMLInputElement>(`input[type=radio][name="${CSS.escape(el.name)}"]`)]
     : [el];
   if (group.some((r) => r.checked)) return false;
-  const variants = valueVariants(key, value);
   const target = group.find((r) =>
     [r.value, ...findLabelText(r)].some((t) => variants.includes(t.trim().toLowerCase())),
   );
@@ -65,36 +74,66 @@ function highlight(el: HTMLElement) {
   setTimeout(() => (el.style.outline = prev), 1500);
 }
 
-export function fillPage(profile: Profile, root: Document = document): FillResult {
+function learnedVariants(a: LearnedAnswer): string[] {
+  return [...new Set([a.value, a.optionValue ?? ''].map((v) => v.trim().toLowerCase()).filter(Boolean))];
+}
+
+/**
+ * Fill every empty field we can. For each field, in order: an answer the user gave to this exact
+ * question before, then the profile, then a learned answer to a near-identical question.
+ */
+export function fillPage(profile: Profile, root: Document = document, extras: FillExtras = {}): FillResult {
   const data = withDerived(profile);
-  const result: FillResult = { filled: 0, fields: [] };
+  const answers = extras.answers ?? [];
+  const result: FillResult = { filled: 0, fields: [], fromLearned: 0, resumes: 0 };
   const seenRadioGroups = new Set<string>();
 
   for (const el of root.querySelectorAll<FormControl>('input, textarea, select')) {
     if (!isFillable(el)) continue;
+    if (el instanceof HTMLSelectElement && el.selectedIndex > 0) continue; // user already picked something
+    const isRadio = el instanceof HTMLInputElement && el.type === 'radio';
+    if (isRadio) {
+      if (seenRadioGroups.has(el.name)) continue;
+      seenRadioGroups.add(el.name);
+    } else if (!(el instanceof HTMLSelectElement) && el.value) {
+      continue; // never overwrite what's already there
+    }
+
+    const norm = answers.length ? normalizeQuestion(questionText(el)) : '';
     const key = matchField(el);
     const value = key ? data[key] : '';
-    if (!key || !value) continue;
+    const learned = findAnswer(answers, norm, 'exact') ?? (key && value ? undefined : findAnswer(answers, norm, 'similar'));
+
+    let variants: string[];
+    let text: string;
+    if (learned) {
+      variants = learnedVariants(learned);
+      text = learned.value;
+    } else if (key && value) {
+      variants = valueVariants(key, value);
+      text = value;
+    } else {
+      continue;
+    }
 
     let ok = false;
     if (el instanceof HTMLSelectElement) {
-      if (el.selectedIndex > 0) continue; // user already picked something
-      ok = fillSelect(el, key, value);
-    } else if (el instanceof HTMLInputElement && el.type === 'radio') {
-      if (seenRadioGroups.has(el.name)) continue;
-      seenRadioGroups.add(el.name);
-      ok = fillRadio(el, key, value);
+      ok = fillSelect(el, variants);
+    } else if (isRadio) {
+      ok = fillRadio(el, variants);
     } else {
-      if (el.value) continue; // never overwrite what's already there
-      setNativeValue(el, value);
+      setNativeValue(el, text);
       ok = true;
     }
 
     if (ok) {
       highlight(el);
       result.filled++;
-      result.fields.push(key);
+      if (learned) result.fromLearned++;
+      else result.fields.push(key!);
     }
   }
+
+  if (extras.resume) result.resumes = attachResume(extras.resume, root);
   return result;
 }

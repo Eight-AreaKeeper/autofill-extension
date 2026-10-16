@@ -38,7 +38,7 @@ button {
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 button:disabled { opacity: 0.6; cursor: default; }
 
-input {
+input, textarea {
   font: inherit;
   width: 100%;
   padding: 7px 9px;
@@ -65,3 +65,14 @@ input {
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .grid label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 20px; }
+
+.options section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
+.options h2 { font-size: 18px; margin: 0 0 4px; }
+.options section .actions { margin-top: 12px; flex-wrap: wrap; }
+.file-chip { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; overflow-wrap: anywhere; }
+.toggle { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+.toggle input { width: auto; }
+.answers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.answers .question { font-size: 13px; margin-bottom: 4px; overflow-wrap: anywhere; }
+.answer-row { display: flex; gap: 8px; align-items: flex-start; }
+.answer-row textarea { resize: vertical; }
