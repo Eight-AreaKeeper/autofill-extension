@@ -46,8 +46,8 @@ Target users are English-speaking people who repeatedly type the same details in
 - **Privacy**: all data stays in `chrome.storage.local` on your device. No network requests, no uploads, no analytics.
 - **Sensitive data**: the MVP does not store government ID numbers, card numbers or passwords. If added later they need a separate toggle and local encryption.
 - **Safety**: never fills `password`, `hidden`, `disabled`, `readonly` or invisible (often honeypot) fields, and never submits forms.
-- **Minimal permissions**: uses `activeTab` + `scripting`, so a script is injected into the current page only when you click. The extension does not request "read and change all your data on all websites", so installation shows no scary warning.
-- **Performance**: nothing runs until you click, so there is zero overhead on pages you browse.
+- **Minimal permissions**: uses `activeTab` + `scripting`, so a script is injected into the current page only when you click. Installation shows no "read and change all your data on all websites" warning; that access is optional, asked for only when you turn on **Learn from every form**, and can be withdrawn on the options page.
+- **Performance**: nothing runs until you click, unless **Learn from every form** is on; then a small script only listens for edits to form fields.
 
 ## 5. Technology choices
 
@@ -91,7 +91,7 @@ Fields that match nothing are left untouched, unless a learned answer applies (s
 
 ## 8. Learned answers
 
-- **When**: after **Fill this page** runs, the injected script listens for `change` events on the page until it is closed. Only trusted (user-generated) events count, so the extension's own fills and the page's scripts are never learned. No new permissions are needed.
+- **When**: by default, after **Fill this page** runs on a page, until that page is left. With the optional **Learn from every form** setting (options page), a background script registers `content-scripts/learn.js` on all sites (`optional_host_permissions: <all_urls>`, requested on click and revocable), so every form is learned from, including later pages of multi-step forms. Only trusted (user-generated) `input`/`change` events count, so the extension's own fills, site prefills and the page's scripts are never learned. Answers are saved on `change`, and every edited field is saved again on `submit`, `pagehide` and when the tab is hidden, which catches a field submitted with Enter.
 - **What**: text inputs, textareas, dropdowns and radio groups whose question the profile doesn't cover, or sentence-style questions (4+ words) where keyword matching is unreliable, e.g. "Have you worked for this company before?".
 - **Never**: passwords, payment details, government IDs, one-time codes, search boxes, checkboxes (often consent boxes), and vague labels like "Other" or "Comments".
 - **Question text**: label, `aria-labelledby`, `aria-label`, nearby caption, radio group legend, placeholder. `name`/`id` are ignored because application forms often generate them (`question_48213`).

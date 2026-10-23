@@ -228,26 +228,51 @@ export function upsertAnswer(list: LearnedAnswer[], answer: LearnedAnswer): Lear
 let queue: Promise<unknown> = Promise.resolve();
 
 /** Serialize writes so quick successive answers don't overwrite each other. */
-export function saveAnswer(answer: LearnedAnswer): Promise<void> {
-  const next = queue.then(async () => answersItem.setValue(upsertAnswer(await getAnswers(), answer)));
+export function saveAnswers(batch: LearnedAnswer[]): Promise<void> {
+  if (!batch.length) return Promise.resolve();
+  const next = queue.then(async () => answersItem.setValue(batch.reduce(upsertAnswer, await getAnswers())));
   queue = next.catch(() => {});
   return next;
 }
 
+function isControl(el: EventTarget | null): el is FormControl {
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement;
+}
+
 /**
- * Start remembering what the user types on this page. Only real user input counts
- * (`isTrusted`), so the extension's own fills and the page's scripts are never learned.
+ * Remember what the user types on this page, until it is closed. Only fields the user
+ * actually edited (trusted `input`/`change` events) count, so the extension's own fills,
+ * the site's prefilled values and the page's scripts are never learned.
+ *
+ * Answers are saved when a field is committed (`change`), and again for every edited
+ * field when the form is submitted or the page is left, which catches a field the user
+ * typed into and then submitted with Enter or navigated away from.
  */
 export function watchAnswers(root: Document = document): void {
-  root.addEventListener(
-    'change',
-    (e) => {
-      if (!e.isTrusted) return;
-      const el = e.target;
-      if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) return;
-      const answer = captureAnswer(el, location.hostname);
-      if (answer) saveAnswer(answer).catch(console.error);
-    },
-    true,
-  );
+  const touched = new Set<FormControl>();
+  const capture = (els: Iterable<FormControl>) => {
+    const batch: LearnedAnswer[] = [];
+    for (const el of els) {
+      const answer = el.isConnected ? captureAnswer(el, location.hostname) : null;
+      if (answer) batch.push(answer);
+    }
+    saveAnswers(batch).catch(console.error);
+  };
+
+  const onEdit = (e: Event) => {
+    if (!e.isTrusted || !isControl(e.target)) return;
+    touched.add(e.target);
+    if (e.type === 'change') capture([e.target]);
+  };
+  root.addEventListener('input', onEdit, true);
+  root.addEventListener('change', onEdit, true);
+
+  const flush = () => {
+    if (!touched.size) return;
+    capture(touched);
+    touched.clear();
+  };
+  root.addEventListener('submit', flush, true);
+  root.defaultView?.addEventListener('pagehide', flush, true);
+  root.addEventListener('visibilitychange', () => root.visibilityState === 'hidden' && flush(), true);
 }

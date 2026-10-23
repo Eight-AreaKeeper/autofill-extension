@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FillResult } from '@/lib/filler';
-import { getAnswers } from '@/lib/learning';
+import { hasAllSites } from '@/lib/everywhere';
+import { getAnswers, getSettings } from '@/lib/learning';
 import { getProfile } from '@/lib/profile';
 import { getResume } from '@/lib/resume';
 
@@ -13,8 +14,10 @@ type State =
 export default function App() {
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [state, setState] = useState<State>({ kind: 'idle' });
+  const [learnsEverywhere, setLearnsEverywhere] = useState(true);
 
   useEffect(() => {
+    Promise.all([getSettings(), hasAllSites()]).then(([s, all]) => setLearnsEverywhere(!s.learn || all));
     Promise.all([getProfile(), getAnswers(), getResume()]).then(([p, answers, resume]) =>
       setHasProfile(Object.values(p).some(Boolean) || answers.length > 0 || !!resume),
     );
@@ -61,6 +64,9 @@ export default function App() {
               <span className="muted">Didn't find any empty fields it could fill.</span>
             ))}
           {state.kind === 'error' && <span className="err">{state.message}</span>}
+          {!learnsEverywhere && (
+            <button className="link" onClick={openOptions}>Learn from every form, not just this page</button>
+          )}
           <button className="link" onClick={openOptions}>Edit my details</button>
         </>
       )}
