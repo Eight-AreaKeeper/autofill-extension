@@ -28,12 +28,13 @@ Target users are English-speaking people who repeatedly type the same details in
 | F6 | Feedback | Filled fields are briefly outlined; the popup reports the count |
 | F7 | Dropdowns and radios | `<select>` options and radio groups are matched by text or value, with aliases (e.g. `CA` ↔ `California`, `US` ↔ `United States`, `Female` ↔ `F`) |
 | F8 | Name splitting | A full name fills separate first/last name fields, and vice versa |
+| F9 | Learned answers | After a fill, answers the user types into fields the profile doesn't cover are remembered by question text and filled next time; editable on the options page, can be turned off |
+| F10 | Resume upload | A resume saved on the options page is attached to resume/CV file inputs (including hidden ones behind drop zones) |
 
 ### Later (out of scope for now)
 
 - Multiple profiles (personal / work), chosen per site
 - Per-site custom mappings: right-click a field and assign it to a profile item, remembered for that site
-- Custom fields (any key → value)
 - Keyboard shortcut and context-menu fill
 - Forms inside iframes and Shadow DOM
 - Import/export (JSON), optional encrypted backup
@@ -45,8 +46,8 @@ Target users are English-speaking people who repeatedly type the same details in
 - **Privacy**: all data stays in `chrome.storage.local` on your device. No network requests, no uploads, no analytics.
 - **Sensitive data**: the MVP does not store government ID numbers, card numbers or passwords. If added later they need a separate toggle and local encryption.
 - **Safety**: never fills `password`, `hidden`, `disabled`, `readonly` or invisible (often honeypot) fields, and never submits forms.
-- **Minimal permissions**: uses `activeTab` + `scripting`, so a script is injected into the current page only when you click. The extension does not request "read and change all your data on all websites", so installation shows no scary warning.
-- **Performance**: nothing runs until you click, so there is zero overhead on pages you browse.
+- **Minimal permissions**: uses `activeTab` + `scripting`, so a script is injected into the current page only when you click. Installation shows no "read and change all your data on all websites" warning; that access is optional, asked for only when you turn on **Learn from every form**, and can be withdrawn on the options page.
+- **Performance**: nothing runs until you click, unless **Learn from every form** is on; then a small script only listens for edits to form fields.
 
 ## 5. Technology choices
 
@@ -86,4 +87,20 @@ In priority order:
 2. **Keyword rules**: each control's descriptors (label text, `name`, `id`, `placeholder`, `aria-label`, `title`, or a nearby caption for table layouts and radio groups) are tested against each profile item's regex in order. Specific rules come before generic ones (ZIP before address, first/last name before name). Exclusions keep out look-alikes such as username, middle name, address line 2 and phone extension.
 3. **Input type**: `type=email`, `type=tel` and `type=url` as a fallback.
 
-Fields that match nothing are left untouched.
+Fields that match nothing are left untouched, unless a learned answer applies (see 8).
+
+## 8. Learned answers
+
+- **When**: by default, after **Fill this page** runs on a page, until that page is left. With the optional **Learn from every form** setting (options page), a background script registers `content-scripts/learn.js` on all sites (`optional_host_permissions: <all_urls>`, requested on click and revocable), so every form is learned from, including later pages of multi-step forms. Only trusted (user-generated) `input`/`change` events count, so the extension's own fills, site prefills and the page's scripts are never learned. Answers are saved on `change`, and every edited field is saved again on `submit`, `pagehide` and when the tab is hidden, which catches a field submitted with Enter.
+- **What**: text inputs, textareas, dropdowns and radio groups whose question the profile doesn't cover, or sentence-style questions (4+ words) where keyword matching is unreliable, e.g. "Have you worked for this company before?".
+- **Never**: passwords, payment details, government IDs, one-time codes, search boxes, checkboxes (often consent boxes), and vague labels like "Other" or "Comments".
+- **Question text**: label, `aria-labelledby`, `aria-label`, nearby caption, radio group legend, placeholder. `name`/`id` are ignored because application forms often generate them (`question_48213`).
+- **Matching**: questions are normalized (case, punctuation, "(optional)"). On fill, an exact match beats the profile; otherwise a near-identical question (Dice similarity ≥ 0.8 over words, or character pairs for Chinese, at least 4 words) is used for fields the profile can't fill. Dropdowns and radios match by the remembered option text or value.
+- **Storage**: `local:answers`, one entry per question, newest answer wins.
+
+## 9. Resume upload
+
+- Uploaded once on the options page, stored base64-encoded in `local:resume` (up to 10 MB; the `unlimitedStorage` permission lifts the 10 MB storage cap and shows no install warning).
+- A file input counts as a resume field when its label, attributes or nearby text mention resume/CV (English or Chinese) and nothing mentions a cover letter, photo, transcript and similar. As a last resort, the page's only file input counts if the page mentions a resume.
+- The input's `accept` list must allow the file. Inputs that already hold a file are skipped. The file is set via `DataTransfer` and `input`/`change` are dispatched so upload widgets react.
+- Limitation: forms inside cross-origin iframes (some embedded job boards) are not reached, as with all filling.
